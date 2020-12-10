@@ -1,6 +1,8 @@
 import numpy as np 
 import seaborn as sns 
 from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
+import cvxpy as cp 
 
 class COMP:
 	
@@ -39,7 +41,7 @@ class COMP:
 			raise Exception("Number of columns in the test matrix and true vector size should be equal.")
 			
 		self.test_result = test_matrix@true_x
-		
+
 		
 	def reconstruct(self,test_mat=None):
 		
@@ -442,7 +444,8 @@ class LP:
 	
 	The LP algorithm reconstructs the true vector x given a test matrix and a test result.
 	It works by solving a convex optimization problem interpreted as a relaxation of the true underlying 
-	optimisation problem of group testing. For more details, see [Malioutov and Malyutov, 2015]. 
+	optimisation problem of group testing. The problem is solved using CVXPY.
+	For more details, see [Malioutov and Malyutov, 2015]. 
 
 	LP has following methods:
 	
