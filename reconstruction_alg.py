@@ -4,32 +4,8 @@ from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import cvxpy as cp 
 
-class COMP:
-	
-	""" 
-	
-	The COMP algorithm conservatively reconstructs the true vector x given a test matrix and a test result.
-	It works by declaring healthy only the individuals that are in a group with negative test result.
-	
-	Initialize COMP with the true (unknown) vector x and the test matrix. 
+class reconstruction_algorithm():
 
-	COMP has following methods:
-	
-	* reconstruct() outputs the vector reconstructed by the COMP algorithm.
-	
-	* score() computes the 0-1 accuracy of the algorithm.
-	
-	* average_score(mat_size,number,alpha) is a function meant for evaluating the performance of the COMP algorithm 
-	with random tests. It computes the 0-1 accuracy for number test designs with mat_size random tests 
-	(parametrized by alpha), and outputes the average performance of the COMP algorithm. 
-
-	* confusion_matrix(absv,plot) returns the confusion matrix. If absv is set to true, returns absolute values 
-	in the confusion matrix, otherwise it will return percentages. If plot is set to true, plots the confusion
-	matrix. This method requires that you import sklearn.metrics.confusion_matrix as confusion_matrix and seaborn
-	as sns.
-	
-	"""
-	
 	def __init__(self,true_x,test_matrix):
 		
 		self.true_x = true_x
@@ -40,36 +16,9 @@ class COMP:
 			
 			raise Exception("Number of columns in the test matrix and true vector size should be equal.")
 			
-		self.test_result = test_matrix@true_x
+		self.test_result = np.int32(test_matrix@true_x >= 1)
 
-		
-	def reconstruct(self,test_mat=None):
-		
-		
-		if type(test_mat) != type(None):
-									
-			test_matrix = test_mat
-			test_result = test_mat@(self.true_x)
-			
-		else:
-			
-			test_matrix = self.test_matrix
-			test_result = self.test_result
-		
-		reconstructed_x = np.ones(test_matrix.shape[1])
-		
-		for line in np.arange(test_matrix.shape[0]):
-			
-			if test_result[line] == 0:
-				
-				def_negatives = test_matrix[line].nonzero()
-				
-				reconstructed_x[def_negatives] = 0
-				
-		return reconstructed_x
-	
-	
-	def score(self,test_mat=None):
+	def accuracy(self,test_mat=None):
 				
 		if type(test_mat) != type(None):
 						
@@ -84,9 +33,62 @@ class COMP:
 		diff[diff != 0] = 1
 		
 		return np.mean(1-diff)
+
+	def precision(self, test_mat=None):
+
+		if type(test_mat) != type(None):
+			
+			#Allows for reconstruction with different test matrix, used in average_score()
+			
+			reconstructed_x = self.reconstruct(test_mat=test_mat)
+		
+		else:
+			
+			reconstructed_x = self.reconstruct()
+
+		if reconstructed_x.any():
+
+			precision = np.sum(np.logical_and(reconstructed_x,self.true_x))/np.sum(reconstructed_x)
+
+			return precision
+
+		else:
+
+			return 0
+
+	def recall(self, test_mat=None):
+
+		if type(test_mat) != type(None):
+			
+			#Allows for reconstruction with different test matrix, used in average_score()
+			
+			reconstructed_x = self.reconstruct(test_mat=test_mat)
+		
+		else:
+			
+			reconstructed_x = self.reconstruct()
+
+		if self.true_x.any():
+
+			recall = np.sum(np.logical_and(reconstructed_x,self.true_x))/np.sum(self.true_x)
+
+			return recall
+
+		else:
+
+			return 1
+
+	def f1score(self,test_mat=None):
+
+		if self.precision() == 0 or self.recall() == 0:
+
+			return 0
+
+		else:
+
+			return 2/(1/self.precision()+1/self.recall())
 	
-	
-	def average_score(self,mat_size,number,alpha):
+	def average_accuracy(self,mat_size,number,alpha):
 		
 		output = 0
 		
@@ -119,11 +121,67 @@ class COMP:
 			plt.show()
 
 
+class COMP(reconstruction_algorithm):
+	
+	""" 
+	
+	The COMP algorithm conservatively reconstructs the true vector x given a test matrix and a test result.
+	It works by declaring healthy only the individuals that are in a group with negative test result.
+	
+	Initialize COMP with the true (unknown) vector x and the test matrix. 
+
+	COMP has following methods:
+	
+	* reconstruct() outputs the vector reconstructed by the COMP algorithm.
+	
+	* score() computes the 0-1 accuracy of the algorithm.
+	
+	* average_score(mat_size,number,alpha) is a function meant for evaluating the performance of the COMP algorithm 
+	with random tests. It computes the 0-1 accuracy for number test designs with mat_size random tests 
+	(parametrized by alpha), and outputes the average performance of the COMP algorithm. 
+
+	* confusion_matrix(absv,plot) returns the confusion matrix. If absv is set to true, returns absolute values 
+	in the confusion matrix, otherwise it will return percentages. If plot is set to true, plots the confusion
+	matrix. This method requires that you import sklearn.metrics.confusion_matrix as confusion_matrix and seaborn
+	as sns.
+	
+	"""
+	
+	def __init__(self,true_x,test_matrix):
+		
+		super().__init__(true_x, test_matrix)
+		
+	def reconstruct(self,test_mat=None):
+		
+		
+		if type(test_mat) != type(None):
+									
+			test_matrix = test_mat
+			test_result = test_mat@(self.true_x)
+			
+		else:
+			
+			test_matrix = self.test_matrix
+			test_result = self.test_result
+		
+		reconstructed_x = np.ones(test_matrix.shape[1])
+		
+		for line in np.arange(test_matrix.shape[0]):
+			
+			if test_result[line] == 0:
+				
+				def_negatives = test_matrix[line].nonzero()
+				
+				reconstructed_x[def_negatives] = 0
+				
+		return reconstructed_x
+
+
 #######################################################################################################
 #######################################################################################################
 #######################################################################################################
 
-class DD:
+class DD(reconstruction_algorithm):
 
 	""" 
 	
@@ -155,15 +213,7 @@ class DD:
 	
 	def __init__(self,true_x,test_matrix):
 		
-		self.true_x = true_x
-		self.popsize = true_x.shape[0]
-		self.test_matrix = test_matrix
-		
-		if self.true_x.shape[0] != (self.test_matrix.shape)[1]:
-			
-			raise Exception("Number of columns in the test matrix and true vector size should be equal.")
-			
-		self.test_result = test_matrix@true_x
+		super().__init__(true_x, test_matrix)
 		
 	def reconstruct(self,test_mat=None):
 				
@@ -208,63 +258,12 @@ class DD:
 		reconstructed_x[defectives]=1
 		
 		return reconstructed_x
-	
-	def score(self,test_mat=None):
-				
-		if type(test_mat) != type(None):
-			
-			#Allows for reconstruction with different test matrix, used in average_score()
-			
-			reconstructed_x = self.reconstruct(test_mat=test_mat)
-		
-		else:
-			
-			reconstructed_x = self.reconstruct()
-			
-			
-		diff = reconstructed_x - self.true_x
-		diff[diff != 0] = 1
-		
-		return np.mean(1-diff)
-	
-	def average_score(self,mat_size,number,alpha):
-		
-		output = 0
-		
-		for i in np.arange(number):
-			
-			random_matrix = np.random.choice([0,1],size=(mat_size,self.popsize),p=[alpha,1-alpha])
-			
-			output += self.score(test_mat=random_matrix)
-			
-		return output/number 
-	
-	def confusion_matrix(self,absv = False, plot=False):
-
-		if plot == False and absv == True :
-
-			return confusion_matrix(self.reconstruct(),self.true_x)
-
-		if plot == False and absv == False : 
-
-			return confusion_matrix(self.reconstruct(),self.true_x)/np.sum(confusion_matrix(self.reconstruct(),self.true_x))
-
-		if plot == True and absv == False:
-
-			sns.heatmap(confusion_matrix(self.reconstruct(),self.true_x)/np.sum(confusion_matrix(self.reconstruct(),self.true_x)),annot=True)
-			plt.show()
-
-		if plot == True and absv == True:
-
-			sns.heatmap(confusion_matrix(self.reconstruct(),self.true_x),annot=True)
-			plt.show()
-
 
 #######################################################################################################
 #######################################################################################################
 #######################################################################################################
 
-class SCOMP:
+class SCOMP(reconstruction_algorithm):
 
 	""" 
 	
@@ -303,15 +302,7 @@ class SCOMP:
 
 	def __init__(self,true_x,test_matrix):
 		
-		self.true_x = true_x
-		self.popsize = true_x.shape[0]
-		self.test_matrix = test_matrix
-		
-		if self.true_x.shape[0] != (self.test_matrix.shape)[1]:
-			
-			raise Exception("Number of columns in the test matrix and true vector size should be equal.")
-			
-		self.test_result = test_matrix@true_x
+		super().__init__(true_x, test_matrix)
 		
 	def reconstruct(self,test_mat=None):
 				
@@ -384,53 +375,6 @@ class SCOMP:
 				estimated_x[selected_i] = 1
 		
 		return estimated_x
-	
-	def score(self,test_mat=None):
-				
-		if type(test_mat) != type(None):
-						
-			reconstructed_x = self.reconstruct(test_mat=test_mat)
-		
-		else:
-			
-			reconstructed_x = self.reconstruct()
-			
-		diff = reconstructed_x - self.true_x
-		diff[diff != 0] = 1
-		
-		return np.mean(1-diff)
-	
-	def average_score(self,mat_size,number,alpha):
-		
-		output = 0
-		
-		for i in np.arange(number):
-			
-			random_matrix = np.random.choice([0,1],size=(mat_size,self.popsize),p=[alpha,1-alpha])
-			
-			output += self.score(test_mat=random_matrix)
-				
-		return output/number
-	
-	def confusion_matrix(self,absv = False, plot=False):
-			
-		if plot == False and absv == True :
-			
-			return confusion_matrix(self.reconstruct(),self.true_x)
-		
-		if plot == False and absv == False : 
-			
-			return confusion_matrix(self.reconstruct(),self.true_x)/np.sum(confusion_matrix(self.reconstruct(),self.true_x))
-		
-		if plot == True and absv == False:
-			
-			sns.heatmap(confusion_matrix(self.reconstruct(),self.true_x)/np.sum(confusion_matrix(self.reconstruct(),self.true_x)),annot=True)
-			plt.show()
-			
-		if plot == True and absv == True:
-			
-			sns.heatmap(confusion_matrix(self.reconstruct(),self.true_x),annot=True)
-			plt.show()
 
 
 #######################################################################################################
@@ -438,7 +382,7 @@ class SCOMP:
 #######################################################################################################
 
 
-class LP:
+class LP(reconstruction_algorithm):
 
 	""" 
 	
@@ -466,15 +410,7 @@ class LP:
 	
 	def __init__(self,true_x,test_matrix):
 		
-		self.true_x = true_x
-		self.popsize = true_x.shape[0]
-		self.test_matrix = test_matrix
-		
-		if self.true_x.shape[0] != (self.test_matrix.shape)[1]:
-			
-			raise Exception("Number of columns in the test matrix and true vector size should be equal.")
-			
-		self.test_result = test_matrix@true_x
+		super().__init__(true_x, test_matrix)
 		
 		
 	def reconstruct(self,test_mat=None):
@@ -497,63 +433,45 @@ class LP:
 
 		x = cp.Variable(self.popsize)
 		objective = cp.Minimize(cp.sum(x))
-		constraints = [ 0 <= x, x <= 1, negative_tests@x == 0,test_result[test_result != 0] <= positive_tests@x]
-		prob = cp.Problem(objective,constraints)
-		prob.solve()
+
+		if len(negative_tests)==0:
+
+			constraints = [ 0 <= x, x <= 1,test_result[test_result != 0] <= positive_tests@x]
+			prob = cp.Problem(objective,constraints)
+			prob.solve()
 		
-		optimal_x = x.value
+			optimal_x = x.value
 				 
-		optimal_x[optimal_x < 1] = 0
+			optimal_x[optimal_x < 1] = 0
 		
-		return optimal_x.astype(int)
-	
-	def score(self,test_mat=None):
-				
-		if type(test_mat) != type(None):
-			
-			#Allows for reconstruction with different test matrix, used in average_score()
-			
-			reconstructed_x = self.reconstruct(test_mat=test_mat)
+			return optimal_x.astype(int)
+
+		if len(positive_tests) ==0:
+
+			constraints = [ 0 <= x, x <= 1, negative_tests@x == 0]
+			prob = cp.Problem(objective,constraints)
+			prob.solve()
 		
+			optimal_x = x.value
+				 
+			optimal_x[optimal_x < 1] = 0
+		
+			return optimal_x.astype(int)
+
 		else:
+
+			constraints = [ 0 <= x, x <= 1, negative_tests@x == 0,test_result[test_result != 0] <= positive_tests@x]
+			prob = cp.Problem(objective,constraints)
+			prob.solve()
 			
-			reconstructed_x = self.reconstruct()
+			optimal_x = x.value
+					 
+			optimal_x[optimal_x < 1] = 0
 			
-			
-		diff = reconstructed_x - self.true_x
-		diff[diff != 0] = 1
-		
-		return np.mean(1-diff)
-	
-	
-	def average_score(self,mat_size,number,alpha):
-		
-		output = 0
-		
-		for i in np.arange(number):
-			
-			random_matrix = np.random.choice([0,1],size=(mat_size,self.popsize),p=[alpha,1-alpha])
-			
-			output += self.score(test_mat=random_matrix)
-			
-		return output/number
-	
-	def confusion_matrix(self,absv = False, plot=False):
+			return optimal_x.astype(int)
 
-		if plot == False and absv == True :
 
-			return confusion_matrix(self.reconstruct(),self.true_x)
 
-		if plot == False and absv == False : 
 
-			return confusion_matrix(self.reconstruct(),self.true_x)/np.sum(confusion_matrix(self.reconstruct(),self.true_x))
 
-		if plot == True and absv == False:
 
-			sns.heatmap(confusion_matrix(self.reconstruct(),self.true_x)/np.sum(confusion_matrix(self.reconstruct(),self.true_x)),annot=True)
-			plt.show()
-
-		if plot == True and absv == True:
-
-			sns.heatmap(confusion_matrix(self.reconstruct(),self.true_x),annot=True)
-			plt.show()
