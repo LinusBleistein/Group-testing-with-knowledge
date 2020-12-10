@@ -1,0 +1,8 @@
+- Plot different metrics for varying number of tests.
+- Plot different metrics for varying p parameter. 
+- Consider sparse case, dense case. 
+
+- Simple case for a linear causal model.
+- Find real data to use on.
+- Combination w. sparsity for real data ? Sparse neural network ? Does something like this exist, or is it automatic ? Add a sparsity constraint in the loss ? :
+
