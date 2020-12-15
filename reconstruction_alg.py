@@ -129,21 +129,6 @@ class COMP(reconstruction_algorithm):
 	It works by declaring healthy only the individuals that are in a group with negative test result.
 	
 	Initialize COMP with the true (unknown) vector x and the test matrix. 
-
-	COMP has following methods:
-	
-	* reconstruct() outputs the vector reconstructed by the COMP algorithm.
-	
-	* score() computes the 0-1 accuracy of the algorithm.
-	
-	* average_score(mat_size,number,alpha) is a function meant for evaluating the performance of the COMP algorithm 
-	with random tests. It computes the 0-1 accuracy for number test designs with mat_size random tests 
-	(parametrized by alpha), and outputes the average performance of the COMP algorithm. 
-
-	* confusion_matrix(absv,plot) returns the confusion matrix. If absv is set to true, returns absolute values 
-	in the confusion matrix, otherwise it will return percentages. If plot is set to true, plots the confusion
-	matrix. This method requires that you import sklearn.metrics.confusion_matrix as confusion_matrix and seaborn
-	as sns.
 	
 	"""
 	
@@ -193,21 +178,6 @@ class DD(reconstruction_algorithm):
 		- It finally declares all remaining individuals healthy.
 
 	Initialize DD with the true (unknown) vector x and the test matrix. 
-
-	DD has following methods:
-	
-	* reconstruct() outputs the vector reconstructed by the COMP algorithm.
-	
-	* score() computes the 0-1 accuracy of the algorithm.
-	
-	* average_score(mat_size,number,alpha) is a function meant for evaluating the performance of the COMP algorithm 
-	with random tests. It computes the 0-1 accuracy for number test designs with mat_size random tests 
-	(parametrized by alpha), and outputes the average performance of the COMP algorithm. 
-
-	* confusion_matrix(absv,plot) returns the confusion matrix. If absv is set to true, returns absolute values 
-	in the confusion matrix, otherwise it will return percentages. If plot is set to true, plots the confusion
-	matrix. This method requires that you import sklearn.metrics.confusion_matrix as confusion_matrix and seaborn
-	as sns.
 	
 	"""
 	
@@ -281,21 +251,6 @@ class SCOMP(reconstruction_algorithm):
 		as sick the individual which is included in the greatest number of these tests.  
 
 	Initialize SCOMP with the true (unknown) vector x and the test matrix. 
-
-	SCOMP has following methods:
-	
-	* reconstruct() outputs the vector reconstructed by the COMP algorithm.
-	
-	* score() computes the 0-1 accuracy of the algorithm.
-	
-	* average_score(mat_size,number,alpha) is a function meant for evaluating the performance of the COMP algorithm 
-	with random tests. It computes the 0-1 accuracy for number test designs with mat_size random tests 
-	(parametrized by alpha), and outputes the average performance of the COMP algorithm. 
-
-	* confusion_matrix(absv,plot) returns the confusion matrix. If absv is set to true, returns absolute values 
-	in the confusion matrix, otherwise it will return percentages. If plot is set to true, plots the confusion
-	matrix. This method requires that you import sklearn.metrics.confusion_matrix as confusion_matrix and seaborn
-	as sns.
 	
 	"""
 
@@ -390,21 +345,6 @@ class LP(reconstruction_algorithm):
 	It works by solving a convex optimization problem interpreted as a relaxation of the true underlying 
 	optimisation problem of group testing. The problem is solved using CVXPY.
 	For more details, see [Malioutov and Malyutov, 2015]. 
-
-	LP has following methods:
-	
-	* reconstruct() outputs the vector reconstructed by the COMP algorithm.
-	
-	* score() computes the 0-1 accuracy of the algorithm.
-	
-	* average_score(mat_size,number,alpha) is a function meant for evaluating the performance of the COMP algorithm 
-	with random tests. It computes the 0-1 accuracy for number test designs with mat_size random tests 
-	(parametrized by alpha), and outputes the average performance of the COMP algorithm. 
-
-	* confusion_matrix(absv,plot) returns the confusion matrix. If absv is set to true, returns absolute values 
-	in the confusion matrix, otherwise it will return percentages. If plot is set to true, plots the confusion
-	matrix. This method requires that you import sklearn.metrics.confusion_matrix as confusion_matrix and seaborn
-	as sns.
 	
 	"""
 	
@@ -470,7 +410,113 @@ class LP(reconstruction_algorithm):
 			
 			return optimal_x.astype(int)
 
+#######################################################################################################
+#######################################################################################################
+#######################################################################################################
 
+class Enhanced_LP(reconstruction_algorithm):
+
+	""" 
+	
+	The Enhanced LP algorithm is similar to the LP algorithm, but it preprocesses the data using the two first steps
+	of the DD algorith. In the first stage, it isolates items that are definetly negative and positive using the procedure
+	of the DD algorithm. The remaining individuals are categorized as indefinite, and are labeled through convex relaxation. 
+	
+	"""
+	
+	def __init__(self,true_x,test_matrix):
+		
+		super().__init__(true_x, test_matrix)
+		
+		
+	def reconstruct(self,test_mat=None):
+		
+		
+		if type(test_mat) != type(None):
+						
+			#Allows for reconstruction with different test matrix, used in average_score()
+			
+			test_matrix = test_mat
+			test_result = test_mat@(self.true_x)
+			
+		else:
+			
+			test_matrix = self.test_matrix
+			test_result = self.test_result
+
+		nd = np.ones(test_matrix.shape[1])
+		
+		for line in np.arange(test_matrix.shape[0]):
+			
+			if test_result[line] == 0:
+				
+				def_negatives = test_matrix[line].nonzero()
+				
+				nd[def_negatives] = 0
+				
+		nd_c_indices = np.nonzero(nd)[0]
+		nd_c = 1-nd
+		nd_indices = np.nonzero(nd == 0)
+		
+		defectives = []
+		
+		for line in np.arange(test_matrix.shape[0]):
+						
+			test_indices = test_matrix[line].nonzero()[0]
+			
+			overlap = len(np.intersect1d(test_indices,nd_c_indices))
+			
+			if overlap == 1:
+				
+				defective = np.intersect1d(test_indices,nd_c_indices)
+				defectives.append(defective[0])
+				
+		reconstructed_x = np.zeros(test_matrix.shape[1])
+		reconstructed_x[defectives]=1
+		
+		return reconstructed_x
+		
+		positive_tests = test_matrix[test_result != 0,:]
+		negative_tests = test_matrix[test_result == 0,:]
+
+		x = cp.Variable(self.popsize)
+		objective = cp.Minimize(cp.sum(x))
+
+		if len(negative_tests)==0:
+
+			constraints = [ 0 <= x, x <= 1,test_result[test_result != 0] <= positive_tests@x]
+			prob = cp.Problem(objective,constraints)
+			prob.solve()
+		
+			optimal_x = x.value
+				 
+			optimal_x[optimal_x < 1] = 0
+		
+			return optimal_x.astype(int)
+
+		if len(positive_tests) ==0:
+
+			constraints = [ 0 <= x, x <= 1, negative_tests@x == 0]
+			prob = cp.Problem(objective,constraints)
+			prob.solve()
+		
+			optimal_x = x.value
+				 
+			optimal_x[optimal_x < 1] = 0
+		
+			return optimal_x.astype(int)
+
+		else:
+
+			constraints = [ 0 <= x, x <= 1, negative_tests@x == 0,test_result[test_result != 0] <= positive_tests@x]
+			prob = cp.Problem(objective,constraints)
+			prob.solve()
+			
+			optimal_x = x.value
+					 
+			optimal_x[optimal_x < 1] = 0
+			
+			return optimal_x.astype(int)
 
 
 
