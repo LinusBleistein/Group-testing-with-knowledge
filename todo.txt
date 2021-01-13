@@ -1,6 +1,8 @@
 - Plot different metrics for varying number of tests.
 - Plot different metrics for varying p parameter. 
-- Consider sparse case, dense case. 
+- Consider sparse case, dense case.
+- Consider different randomizations for tests: Bernouilli design, constant tests per item. 
+- Consider different sparsity regimes. 
 
 - Simple case for a linear causal model.
 - Find real data to use on.
