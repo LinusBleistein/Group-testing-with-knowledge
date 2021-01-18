@@ -1,4 +1,8 @@
 import numpy as np 
+import pandas as pd
+from sklearn.datasets import make_blobs
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
 
 def vsparse_input(n,k,p,iid=False):
 	"""
@@ -70,5 +74,53 @@ def ctpi_tests(T,n,L):
 	testmat[aux.argsort(axis=0)>= T-L] = 1
     
 	return np.int64(testmat)
+
+def generate_blobs(samplesize=500,sparsity_regime=sparse,sparsity_parameter=2/3):
+
+	if sparsity_regime == sparse:
+
+		n_defectives = int(samplesize**(sparsity_parameter))
+
+	if sparsity_regime == vsparse:
+
+		n_defectives = sparsity_parameter
+
+	if sparsity_regime == linear:
+
+		n_defectives = sample_size*sparsity_parameter
+
+	X, y = make_blobs(n_samples=[samplesize,n_defectives], n_features=2, random_state=0, centers=np.array([[0,0],[1,-1]]))
+
+	x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+	clf = LogisticRegression().fit(x_train, y_train)
+
+	probas = clf.predict_proba(x_test)[:,0]
+
+	predicted = clf.predict(x_test)
+
+	length = len(x_test)
+
+	data = np.concatenate((y_test.reshape(length,1),x_test,probas.reshape(length,1),predicted.reshape(length,1),predicted.reshape(length,1)),axis=1)
+
+	data = data.reshape(length,6)
+
+	df = pd.DataFrame(data,columns=['True status','Feature 1','Feature 2','Predicted probability','Predicted status','Rectified status'])
+
+	return df 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
