@@ -1,8 +1,10 @@
 import numpy as np 
 import pandas as pd
-from sklearn.datasets import make_blobs
+from sklearn.datasets import make_blobs,make_moons
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+
 
 def vsparse_input(n,k,p,iid=False):
 	"""
@@ -75,17 +77,17 @@ def ctpi_tests(T,n,L):
     
 	return np.int64(testmat)
 
-def generate_blobs(samplesize=500,sparsity_regime=sparse,sparsity_parameter=2/3):
+def generate_blobs(samplesize=500,sparsity_regime="sparse",sparsity_parameter=2/3):
 
-	if sparsity_regime == sparse:
+	if sparsity_regime == "sparse":
 
 		n_defectives = int(samplesize**(sparsity_parameter))
 
-	if sparsity_regime == vsparse:
+	if sparsity_regime == "vsparse":
 
 		n_defectives = sparsity_parameter
 
-	if sparsity_regime == linear:
+	if sparsity_regime == "linear":
 
 		n_defectives = sample_size*sparsity_parameter
 
@@ -98,6 +100,43 @@ def generate_blobs(samplesize=500,sparsity_regime=sparse,sparsity_parameter=2/3)
 	probas = clf.predict_proba(x_test)[:,0]
 
 	predicted = clf.predict(x_test)
+
+	length = len(x_test)
+
+	data = np.concatenate((y_test.reshape(length,1),x_test,probas.reshape(length,1),predicted.reshape(length,1),predicted.reshape(length,1)),axis=1)
+
+	data = data.reshape(length,6)
+
+	df = pd.DataFrame(data,columns=['True status','Feature 1','Feature 2','Predicted probability','Predicted status','Rectified status'])
+
+	return df 
+
+
+
+def generate_moons(samplesize=500,sparsity_regime="sparse",sparsity_parameter=2/3,neighbours=10):
+
+	if sparsity_regime == "sparse":
+
+		n_defectives = int(samplesize**(sparsity_parameter))
+
+	if sparsity_regime == "vsparse":
+
+		n_defectives = sparsity_parameter
+
+	if sparsity_regime == "linear":
+
+		n_defectives = samplesize*sparsity_parameter
+
+	X, y = make_moons(n_samples=(400,60), noise=.45)
+
+	x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+	knn = KNeighborsClassifier(n_neighbors=neighbours)
+	knn.fit(x_train, y_train)
+
+	probas = knn.predict_proba(x_test)[:,0]
+
+	predicted = knn.predict(x_test)
 
 	length = len(x_test)
 
