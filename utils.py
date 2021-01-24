@@ -151,27 +151,35 @@ def generate_moons(samplesize=500,sparsity_regime="sparse",sparsity_parameter=2/
 
 def compute_precision(true_y,predicted_y):
 
-	cm = confusion_matrix(true_y,predicted_y)
+	confmat = confusion_matrix(true_y,predicted_y)
 
-	true_positives = cm[1,1]
-	total_positives = cm[0,1] + true_positives
-
-	if total_positives ==0:
+	if confmat[1,1] == confmat[0,1] == confmat[1,0] == 0:
 
 		return 1
 
+	if confmat[1,1] ==0:
+
+		return 0
+
 	else:
 
-		return true_positives/total_positives
+		return confmat[1,1]/(confmat[1,1]+confmat[0,1])
 
 def compute_recall(true_y,predicted_y): 
 
-	cm = confusion_matrix(true_y,predicted_y)
+	confmat = confusion_matrix(true_y,predicted_y)
 
-	true_positives = cm[1,1]
-	false_negatives = cm[1,0]
+	if confmat[1,1] == confmat[1,0] == confmat[0,1] == 0 :
 
-	return true_positives/(true_positives+false_negatives)
+		return 1
+
+	if confmat[1,1] ==0:
+
+		return 0
+
+	else:
+
+		return confmat[1,1]/(confmat[1,1]+confmat[1,0])
 
 
 

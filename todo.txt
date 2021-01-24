@@ -1,10 +1,18 @@
-- Plot different metrics for varying number of tests.
-- Plot different metrics for varying p parameter. 
+For the part on reconstruction algorithms
+
+- Plot different metrics for varying p parameter.
+- Plot success probability, as defined in the papers, for different settings + eventually succes proba with small errors
+- Plot F-score rather than precision / recall, since it applies for all algorithms. 
 - Consider sparse case, dense case.
 - Consider different randomizations for tests: Bernouilli design, constant tests per item. 
 - Consider different sparsity regimes. 
 
-- Simple case for a linear causal model.
-- Find real data to use on.
-- Combination w. sparsity for real data ? Sparse neural network ? Does something like this exist, or is it automatic ? Add a sparsity constraint in the loss ? :
+For the first toy example
+
+- Redo all tests with the correct metrics (success proba + success proba with small errors)
+- Second toy example (KNN) really necessary ? Focus maybe on high dimensions ? 
+
+Adding noise
+
+- If possible, try some stuff in the noisy case
 

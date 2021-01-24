@@ -29,10 +29,9 @@ class reconstruction_algorithm():
 			reconstructed_x = self.reconstruct()
 			
 			
-		diff = reconstructed_x - self.true_x
-		diff[diff != 0] = 1
-		
-		return np.mean(1-diff)
+		confmat = confusion_matrix(self.true_x,reconstructed_x)
+
+		return (confmat[0,0]+confmat[1,1])/np.sum(confmat)
 
 	def precision(self, test_mat=None):
 
@@ -46,15 +45,20 @@ class reconstruction_algorithm():
 			
 			reconstructed_x = self.reconstruct()
 
-		if reconstructed_x.any():
+		confmat = confusion_matrix(self.true_x,reconstructed_x)
 
-			precision = np.sum(np.logical_and(reconstructed_x,self.true_x))/np.sum(reconstructed_x)
+		if confmat[1,1] == confmat[0,1] == confmat[1,0] == 0:
 
-			return precision
+			return 1
+
+		if confmat[1,1] ==0:
+
+			return 0
 
 		else:
 
-			return 0
+			return confmat[1,1]/(confmat[1,1]+confmat[0,1])
+
 
 	def recall(self, test_mat=None):
 
@@ -68,25 +72,38 @@ class reconstruction_algorithm():
 			
 			reconstructed_x = self.reconstruct()
 
-		if self.true_x.any():
+		confmat = confusion_matrix(self.true_x,reconstructed_x)
 
-			recall = np.sum(np.logical_and(reconstructed_x,self.true_x))/np.sum(self.true_x)
-
-			return recall
-
-		else:
+		if confmat[1,1] == confmat[1,0] == confmat[0,1] == 0 :
 
 			return 1
 
-	def f1score(self,test_mat=None):
-
-		if self.precision() == 0 or self.recall() == 0:
+		if confmat[1,1] ==0:
 
 			return 0
 
 		else:
 
+			return confmat[1,1]/(confmat[1,1]+confmat[1,0])
+
+
+
+	def f1score(self,test_mat=None):
+
+		confmat = confusion_matrix(self.true_x,self.reconstruct())
+
+		if self.precision() == 0 or self.recall() == 0:
+
+			return 0
+
+		if confmat[1,1] == confmat[1,0] == confmat[0,1] == 0:
+
+			return 1
+
+		else:
+
 			return 2/(1/self.precision()+1/self.recall())
+
 	
 	def average_accuracy(self,mat_size,number,alpha):
 		
@@ -102,22 +119,26 @@ class reconstruction_algorithm():
 	
 	def confusion_matrix(self,absv = False, plot=False):
 
+		reconstructed_x = self.reconstruct()
+		true_x = self.true_x
+		confmat = confusion_matrix(true_x,reconstructed_x)
+
 		if plot == False and absv == True :
 
-			return confusion_matrix(self.reconstruct(),self.true_x)
+			return confmat
 
 		if plot == False and absv == False : 
 
-			return confusion_matrix(self.reconstruct(),self.true_x)/np.sum(confusion_matrix(self.reconstruct(),self.true_x))
+			return confmat/np.sum(confmat)
 
 		if plot == True and absv == False:
 
-			sns.heatmap(confusion_matrix(self.reconstruct(),self.true_x)/np.sum(confusion_matrix(self.reconstruct(),self.true_x)),annot=True)
+			sns.heatmap(confmat/np.sum(confmat),annot=True)
 			plt.show()
 
 		if plot == True and absv == True:
 
-			sns.heatmap(confusion_matrix(self.reconstruct(),self.true_x),annot=True)
+			sns.heatmap(confmat,annot=True)
 			plt.show()
 
 
