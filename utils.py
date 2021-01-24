@@ -4,6 +4,7 @@ from sklearn.datasets import make_blobs,make_moons
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import confusion_matrix 
 
 
 def vsparse_input(n,k,p,iid=False):
@@ -74,7 +75,7 @@ def ctpi_tests(T,n,L):
 	testmat = np.zeros((T,n))
 	aux = np.random.random((T,n))
 	testmat[aux.argsort(axis=0)>= T-L] = 1
-    
+	
 	return np.int64(testmat)
 
 def generate_blobs(samplesize=500,sparsity_regime="sparse",sparsity_parameter=2/3):
@@ -85,11 +86,11 @@ def generate_blobs(samplesize=500,sparsity_regime="sparse",sparsity_parameter=2/
 
 	if sparsity_regime == "vsparse":
 
-		n_defectives = sparsity_parameter
+		n_defectives = int(sparsity_parameter)
 
 	if sparsity_regime == "linear":
 
-		n_defectives = sample_size*sparsity_parameter
+		n_defectives = int(samplesize*sparsity_parameter)
 
 	X, y = make_blobs(n_samples=[samplesize,n_defectives], n_features=2, random_state=0, centers=np.array([[0,0],[1,-1]]))
 
@@ -147,6 +148,34 @@ def generate_moons(samplesize=500,sparsity_regime="sparse",sparsity_parameter=2/
 	df = pd.DataFrame(data,columns=['True status','Feature 1','Feature 2','Predicted probability','Predicted status','Rectified status'])
 
 	return df 
+
+def compute_precision(true_y,predicted_y):
+
+	cm = confusion_matrix(true_y,predicted_y)
+
+	true_positives = cm[1,1]
+	total_positives = cm[0,1] + true_positives
+
+	if total_positives ==0:
+
+		return 1
+
+	else:
+
+		return true_positives/total_positives
+
+def compute_recall(true_y,predicted_y): 
+
+	cm = confusion_matrix(true_y,predicted_y)
+
+	true_positives = cm[1,1]
+	false_negatives = cm[1,0]
+
+	return true_positives/(true_positives+false_negatives)
+
+
+
+
 
 
 
