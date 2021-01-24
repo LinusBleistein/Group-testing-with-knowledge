@@ -90,19 +90,24 @@ class reconstruction_algorithm():
 
 	def f1score(self,test_mat=None):
 
-		confmat = confusion_matrix(self.true_x,self.reconstruct())
+		#confmat = confusion_matrix(self.true_x,self.reconstruct())
+		precision = self.precision()
+		recall = self.recall()
 
-		if self.precision() == 0 or self.recall() == 0:
+		if (precision == 0) or (recall==0):
 
 			return 0
 
-		if confmat[1,1] == confmat[1,0] == confmat[0,1] == 0:
+		#if confmat[1,1] == confmat[1,0] == confmat[0,1] == 0:
 
-			return 1
+			#return 1
 
 		else:
 
-			return 2/(1/self.precision()+1/self.recall())
+			#print(self.precision())
+			#print(self.recall())
+
+			return 2*(precision*recall)/(precision+recall)
 
 	
 	def average_accuracy(self,mat_size,number,alpha):
@@ -392,8 +397,8 @@ class LP(reconstruction_algorithm):
 		positive_tests = test_matrix[test_result != 0,:]
 		negative_tests = test_matrix[test_result == 0,:]
 
-		x = cp.Variable(self.popsize)
-		objective = cp.Minimize(cp.sum(x))
+		z = cp.Variable(self.popsize)
+		objective = cp.Minimize(cp.sum(z))
 
 		if len(negative_tests)==0:
 
@@ -421,13 +426,15 @@ class LP(reconstruction_algorithm):
 
 		else:
 
-			constraints = [ 0 <= x, x <= 1, negative_tests@x == 0,test_result[test_result != 0] <= positive_tests@x]
+			constraints = [ 0 <= z, negative_tests@z == 0,test_result[test_result != 0] <= positive_tests@z]
 			prob = cp.Problem(objective,constraints)
 			prob.solve()
 			
 			optimal_x = x.value
 					 
-			optimal_x[optimal_x < 1] = 0
+			optimal_x[optimal_x > 0] = 1
+			optimal_x[optimal_x == 0] = 0
+
 			
 			return optimal_x.astype(int)
 
