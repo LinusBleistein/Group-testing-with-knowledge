@@ -397,20 +397,20 @@ class LP(reconstruction_algorithm):
 		positive_tests = test_matrix[test_result != 0,:]
 		negative_tests = test_matrix[test_result == 0,:]
 
-		z = cp.Variable(self.popsize)
-		objective = cp.Minimize(cp.sum(z))
+		x = cp.Variable(self.popsize)
+		objective = cp.Minimize(cp.sum(x))
 
 		if len(negative_tests)==0:
 
-			constraints = [ 0 <= x, x <= 1,test_result[test_result != 0] <= positive_tests@x]
+			constraints = [ 0 <= x,test_result[test_result != 0] <= positive_tests@x]
 			prob = cp.Problem(objective,constraints)
 			prob.solve()
 		
-			optimal_x = x.value
+			optimal_x = np.float32(x.value)
 				 
 			optimal_x[optimal_x < 1] = 0
 		
-			return optimal_x.astype(int)
+			return optimal_x
 
 		if len(positive_tests) ==0:
 
@@ -418,25 +418,23 @@ class LP(reconstruction_algorithm):
 			prob = cp.Problem(objective,constraints)
 			prob.solve()
 		
-			optimal_x = x.value
+			optimal_x = np.float32(x.value)
 				 
 			optimal_x[optimal_x < 1] = 0
 		
-			return optimal_x.astype(int)
+			return optimal_x
 
 		else:
 
-			constraints = [ 0 <= z, negative_tests@z == 0,test_result[test_result != 0] <= positive_tests@z]
+			constraints = [ 0 <= x, negative_tests@x == 0,test_result[test_result != 0] <= positive_tests@x]
 			prob = cp.Problem(objective,constraints)
 			prob.solve()
 			
-			optimal_x = x.value
+			optimal_x = np.float32(x.value)
 					 
-			optimal_x[optimal_x > 0] = 1
-			optimal_x[optimal_x == 0] = 0
-
+			optimal_x[optimal_x < 1] = 0
 			
-			return optimal_x.astype(int)
+			return optimal_x
 
 #######################################################################################################
 #######################################################################################################
