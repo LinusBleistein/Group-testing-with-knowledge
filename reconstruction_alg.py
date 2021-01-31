@@ -396,153 +396,94 @@ class LP(reconstruction_algorithm):
 		
 		positive_tests = test_matrix[test_result != 0,:]
 		negative_tests = test_matrix[test_result == 0,:]
+		j=0
+		try:
 
-		x = cp.Variable(self.popsize)
-		objective = cp.Minimize(cp.sum(x))
+			x = cp.Variable(self.popsize)
+			objective = cp.Minimize(cp.sum(x))
 
-		if len(negative_tests)==0:
+		except ValueError:
+			j=1
+			pass
+		if j:
+			return
 
-			constraints = [ 0 <= x,test_result[test_result != 0] <= positive_tests@x]
-			prob = cp.Problem(objective,constraints)
-			prob.solve()
-		
-			optimal_x = np.float32(x.value)
-				 
-			optimal_x[optimal_x < 1] = 0
-		
-			return optimal_x
-
-		if len(positive_tests) ==0:
-
-			constraints = [ 0 <= x, x <= 1, negative_tests@x == 0]
-			prob = cp.Problem(objective,constraints)
-			prob.solve()
-		
-			optimal_x = np.float32(x.value)
-				 
-			optimal_x[optimal_x < 1] = 0
-		
-			return optimal_x
-
-		else:
-
-			constraints = [ 0 <= x, negative_tests@x == 0,test_result[test_result != 0] <= positive_tests@x]
-			prob = cp.Problem(objective,constraints)
-			prob.solve()
-			
-			optimal_x = np.float32(x.value)
-					 
-			optimal_x[optimal_x < 1] = 0
-			
-			return optimal_x
-
-#######################################################################################################
-#######################################################################################################
-#######################################################################################################
-
-class Enhanced_LP(reconstruction_algorithm):
-
-	""" 
-	
-	The Enhanced LP algorithm is similar to the LP algorithm, but it preprocesses the data using the two first steps
-	of the DD algorith. In the first stage, it isolates items that are definetly negative and positive using the procedure
-	of the DD algorithm. The remaining individuals are categorized as indefinite, and are labeled through convex relaxation. 
-	
-	"""
-	
-	def __init__(self,true_x,test_matrix):
-		
-		super().__init__(true_x, test_matrix)
-		
-		
-	def reconstruct(self,test_mat=None):
-		
-		
-		if type(test_mat) != type(None):
-						
-			#Allows for reconstruction with different test matrix, used in average_score()
-			
-			test_matrix = test_mat
-			test_result = test_mat@(self.true_x)
-			
-		else:
-			
-			test_matrix = self.test_matrix
-			test_result = self.test_result
-
-		nd = np.ones(test_matrix.shape[1])
-		
-		for line in np.arange(test_matrix.shape[0]):
-			
-			if test_result[line] == 0:
-				
-				def_negatives = test_matrix[line].nonzero()
-				
-				nd[def_negatives] = 0
-				
-		nd_c_indices = np.nonzero(nd)[0]
-		nd_c = 1-nd
-		nd_indices = np.nonzero(nd == 0)
-		
-		defectives = []
-		
-		for line in np.arange(test_matrix.shape[0]):
-						
-			test_indices = test_matrix[line].nonzero()[0]
-			
-			overlap = len(np.intersect1d(test_indices,nd_c_indices))
-			
-			if overlap == 1:
-				
-				defective = np.intersect1d(test_indices,nd_c_indices)
-				defectives.append(defective[0])
-				
-		reconstructed_x = np.zeros(test_matrix.shape[1])
-		reconstructed_x[defectives]=1
-		
-		return reconstructed_x
-		
-		positive_tests = test_matrix[test_result != 0,:]
-		negative_tests = test_matrix[test_result == 0,:]
-
-		x = cp.Variable(self.popsize)
-		objective = cp.Minimize(cp.sum(x))
 
 		if len(negative_tests)==0:
 
-			constraints = [ 0 <= x, x <= 1,test_result[test_result != 0] <= positive_tests@x]
-			prob = cp.Problem(objective,constraints)
-			prob.solve()
+			t=0
+			
+			try:
+				constraints = [ 0 <= x,test_result[test_result != 0] <= positive_tests@x]
+				prob = cp.Problem(objective,constraints)
+				prob.solve()
+
+			except ValueError:
+				print('klong')
+				t=1
+			if t:
+				pass
+			else:
 		
-			optimal_x = x.value
-				 
-			optimal_x[optimal_x < 1] = 0
-		
-			return optimal_x.astype(int)
+				optimal_x = np.float32(x.value)
+					 
+				optimal_x[optimal_x < 1] = 0
+			
+				return optimal_x
 
 		if len(positive_tests) ==0:
 
-			constraints = [ 0 <= x, x <= 1, negative_tests@x == 0]
-			prob = cp.Problem(objective,constraints)
-			prob.solve()
+			t=0
+			
+			try:
+				constraints = [ 0 <= x, x <= 1, negative_tests@x == 0]
+				prob = cp.Problem(objective,constraints)
+				prob.solve()
+
+			except ValueError:
+				t=1
+				print('klong')
+				pass
+			if t:
+				pass
+			else:
 		
-			optimal_x = x.value
-				 
-			optimal_x[optimal_x < 1] = 0
-		
-			return optimal_x.astype(int)
+				optimal_x = np.float32(x.value)
+					 
+				optimal_x[optimal_x < 1] = 0
+			
+				return optimal_x
 
 		else:
 
-			constraints = [ 0 <= x, x <= 1, negative_tests@x == 0,test_result[test_result != 0] <= positive_tests@x]
-			prob = cp.Problem(objective,constraints)
-			prob.solve()
+			t=0
 			
-			optimal_x = x.value
+			try: 
+				constraints = [ 0 <= x, negative_tests@x == 0,test_result[test_result != 0] <= positive_tests@x]
+				prob = cp.Problem(objective,constraints)
+				prob.solve()
+
+			except ValueError:
+				print('klong')
+				t = 1
+
+			if t:
+
+				pass
+
+			else:
+			
+				optimal_x = np.float32(x.value)
 					 
-			optimal_x[optimal_x < 1] = 0
+				optimal_x[optimal_x < 1] = 0
 			
-			return optimal_x.astype(int)
+				return optimal_x
+
+#######################################################################################################
+#######################################################################################################
+#######################################################################################################
+
+
 
 
 

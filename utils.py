@@ -78,6 +78,22 @@ def ctpi_tests(T,n,L):
 	
 	return np.int64(testmat)
 
+def logistic_tests(T,probas,k):
+
+	n = len(probas)
+	testmat = np.zeros((T,n))
+
+	for column in np.arange(n):
+		
+		proba = probas[column]
+		proba = 1-proba
+		tests = np.random.choice([1,0],size=(1,T),p=[proba,1-proba])
+		testmat[:,column] = tests
+
+	return testmat
+
+
+
 def generate_blobs(samplesize=500,sparsity_regime="sparse",sparsity_parameter=2/3):
 
 	if sparsity_regime == "sparse":
@@ -182,6 +198,22 @@ def compute_recall(true_y,predicted_y):
 		return confmat[1,1]/(confmat[1,1]+confmat[1,0])
 
 
+def error_count(true_y,pred_y,k):
+
+	truth = [true_y==pred_y]
+	n_errors = np.count_nonzero(truth[0]==0)
+
+	if n_errors <= k:
+		return 1
+	else:
+		return 0
+
+def error_n(true_y,pred_y):
+
+	truth = [true_y==pred_y]
+	n_errors = np.count_nonzero(truth[0]==0)
+
+	return n_errors
 
 
 
